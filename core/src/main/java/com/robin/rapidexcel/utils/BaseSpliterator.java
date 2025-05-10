@@ -35,11 +35,11 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
     static boolean isDate1904;
 
 
-    public BaseSpliterator(WorkBook workBook, InputStream stream, ExcelSheetProp prop) throws XMLStreamException {
+    public BaseSpliterator(WorkBook workBook, InputStream stream, ExcelSheetProp prop1) throws XMLStreamException {
         this.workBook=workBook;
         isDate1904=workBook.isDate1904();
         this.r =new XMLReader(XMLFactoryUtils.getDefaultInputFactory(),stream);
-        prop=prop;
+        prop=prop1;
 
         processor=new CellProcessor();
         if(prop!=null){
