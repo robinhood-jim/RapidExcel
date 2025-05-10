@@ -33,7 +33,7 @@
     <repositories>
         <repository>
             <id>myrepo</id>
-            <url>https://raw.github.com/robinhood-jim/JavaFrameWork/master</url>
+            <url>https://maven.pkg.github.com/robinhood-jim/JavaFrameWork</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
