@@ -30,6 +30,15 @@
             <url>https://maven.pkg.github.com/robinhood-jim/JavaFramework</url>
         </snapshotRepository>
     </distributionManagement>
+    <repositories>
+        <repository>
+            <id>myrepo</id>
+            <url>https://raw.github.com/robinhood-jim/JavaFrameWork/master</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
 
     <developers>
