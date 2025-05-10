@@ -1,4 +1,4 @@
-# RapidExcel
+RapidExcel
 =========
 [![Build Status](https://github.com/robinhood-jim/RapidExcel/actions/workflows/maven.yml/badge.svg?branch=master)](https://github.com/robinhood-jim/RapidExcel/actions)
 
