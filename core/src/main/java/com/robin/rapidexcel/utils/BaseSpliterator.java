@@ -2,12 +2,13 @@ package com.robin.rapidexcel.utils;
 
 import com.robin.comm.util.xls.ExcelColumnProp;
 import com.robin.comm.util.xls.ExcelSheetProp;
-import com.robin.core.base.exception.OperationNotSupportException;
+
 import com.robin.core.base.util.Const;
 import com.robin.rapidexcel.elements.Cell;
 import com.robin.rapidexcel.elements.CellAddress;
 import com.robin.rapidexcel.elements.CellType;
 import com.robin.rapidexcel.elements.WorkBook;
+import com.robin.rapidexcel.exception.ExcelException;
 import com.robin.rapidexcel.reader.XMLReader;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
@@ -21,7 +22,7 @@ import java.util.function.Consumer;
 
 abstract class BaseSpliterator<T> implements Spliterator<T> {
     final XMLReader r;
-    static WorkBook workBook;
+    WorkBook workBook;
     int trackedRowIndex = 0;
     boolean containHeaders=false;
     static ExcelSheetProp prop;
@@ -31,12 +32,14 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
     boolean finishReadHeader =false;
     Map<Integer,CellAddress> addressMap=new HashMap<>();
     CellProcessor processor;
+    static boolean isDate1904;
 
 
     public BaseSpliterator(WorkBook workBook, InputStream stream, ExcelSheetProp prop) throws XMLStreamException {
         this.workBook=workBook;
+        isDate1904=workBook.isDate1904();
         this.r =new XMLReader(XMLFactoryUtils.getDefaultInputFactory(),stream);
-        this.prop=prop;
+        prop=prop;
 
         processor=new CellProcessor();
         if(prop!=null){
@@ -62,7 +65,7 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
                 return false;
             }
         } catch (XMLStreamException e) {
-            throw new OperationNotSupportException(e);
+            throw new ExcelException(e);
         }
     }
 
@@ -202,7 +205,7 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
                         retObj=Double.parseDouble(tmpVal);
                         break;
                     case Const.META_TYPE_TIMESTAMP:
-                        retObj=DateUtils.getLocalDateTime(Double.valueOf(s),workBook.isDate1904(),false);
+                        retObj=DateUtils.getLocalDateTime(Double.valueOf(s),isDate1904,false);
                         break;
                     default:
                         retObj=new BigDecimal(s);
@@ -212,7 +215,7 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
             }
             return retObj;
         } catch (NumberFormatException e) {
-            throw new OperationNotSupportException("Cannot parse number : " + s);
+            throw new ExcelException("Cannot parse number : " + s);
         }
     }
     private static String defaultValue(String s,CellAddress address){
@@ -225,7 +228,7 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
         } else if ("1".equals(s)) {
             return Boolean.TRUE;
         } else {
-            throw new OperationNotSupportException("Invalid boolean cell value: '" + s + "'. Expecting '0' or '1'.");
+            throw new ExcelException("Invalid boolean cell value: '" + s + "'. Expecting '0' or '1'.");
         }
     }
     Cell parseCell(int trackedColIndex,boolean isMultiplex) throws XMLStreamException {
@@ -287,7 +290,7 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
                 processor.setRawValue(r.getValueUntilEndElement("v"));
                 try {
                     processor.setValue("".equals(processor.getRawValue()) ? null : parser.apply(processor.getRawValue(),addr));
-                } catch (OperationNotSupportException e) {
+                } catch (ExcelException e) {
                     definedType = CellType.ERROR;
                 }
             } else if ("f".equals(r.getLocalName())) {

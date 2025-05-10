@@ -1,19 +1,22 @@
 package com.robin.rapidexcel.utils;
 
-import com.robin.core.base.exception.OperationNotSupportException;
+
 import com.robin.core.base.util.FileUtils;
 import com.robin.rapidexcel.elements.RelationShip;
 import com.robin.rapidexcel.elements.WorkSheet;
+import com.robin.rapidexcel.exception.ExcelException;
 import com.robin.rapidexcel.reader.XMLReader;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipFile;
-import org.apache.commons.io.FileExistsException;
+
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.*;
+import java.nio.file.FileAlreadyExistsException;
 import java.util.*;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -22,6 +25,7 @@ import java.util.zip.ZipOutputStream;
 
 import static java.lang.String.format;
 
+@Slf4j
 public class OPCPackage implements Closeable {
     private static final Pattern filenameRegex = Pattern.compile("^(.*/)([^/]+)$");
     private static final Map<String, String> IMPLICIT_NUM_FMTS = new HashMap<>() {{
@@ -112,7 +116,7 @@ public class OPCPackage implements Closeable {
     private OPCPackage(InputStream stream){
         this(stream,"UTF8");
     }
-    private void readInit() throws OperationNotSupportException {
+    private void readInit() throws ExcelException {
         try {
             if (ObjectUtils.isEmpty(zipFile) && !ObjectUtils.isEmpty(zipStreams)) {
                 entry = new ZipStreamEntry(zipStreams);
@@ -122,7 +126,7 @@ public class OPCPackage implements Closeable {
             extractRelationShip(relsNameFor(workBookPath));
             extractExtendProperty(appPath);
         }catch (IOException|XMLStreamException ex){
-            throw new OperationNotSupportException(ex.getMessage());
+            throw new ExcelException(ex.getMessage());
         }
     }
     public static OPCPackage open(File zipFile){
@@ -142,7 +146,7 @@ public class OPCPackage implements Closeable {
             OPCPackage opcPackage=new OPCPackage(outputStream,bufferedSize);
             return opcPackage;
         }catch (Exception ex){
-
+            log.error("{}",ex.getMessage());
         }
         return null;
     }
@@ -152,7 +156,7 @@ public class OPCPackage implements Closeable {
             OPCPackage opcPackage=new OPCPackage(new FileOutputStream(fileName),bufferedSize);
             return opcPackage;
 
-        }catch (FileExistsException|FileNotFoundException ex){
+        }catch (FileAlreadyExistsException | FileNotFoundException ex){
 
         }
         return null;
