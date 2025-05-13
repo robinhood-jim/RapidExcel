@@ -1,6 +1,6 @@
 RapidExcel
 =========
-[![Build Status](https://github.com/robinhood-jim/RapidExcel/actions/workflows/maven.yml/badge.svg?branch=master)](https://github.com/robinhood-jim/RapidExcel/actions)
+[![Build Status](https://github.com/robinhood-jim/RapidExcel/actions/workflows/maven.yml/badge.svg?branch=main)](https://github.com/robinhood-jim/RapidExcel/actions)
 
 Read or write large Excel file without Apache POI,Low JVM cost and fast speed
 Apache POI actor as the most popular tools to manipulate Excel sheets,Although reading from InputStream may flush all content to memory
