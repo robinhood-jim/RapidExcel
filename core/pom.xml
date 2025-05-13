@@ -17,6 +17,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.robin</groupId>
+            <artifactId>common</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>

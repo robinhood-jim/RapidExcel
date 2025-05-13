@@ -89,6 +89,7 @@ public class OPCPackage implements Closeable {
     private String appVersion;
 
 
+
     private OPCPackage(File zipFile){
         try{
             this.zipFile =new ZipFile(zipFile);
@@ -281,6 +282,7 @@ public class OPCPackage implements Closeable {
     public InputStream getShardingStrings() throws IOException{
         return getRequiredEntryContent(shardingStringsPath);
     }
+
 
     @Override
     public void close() throws IOException {

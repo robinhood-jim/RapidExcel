@@ -16,6 +16,7 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class WorkBook implements Closeable {
@@ -91,6 +92,16 @@ public class WorkBook implements Closeable {
             }
         }
         shardingStrings=ShardingStrings.formInputStream(opcPackage.getShardingStrings());
+    }
+    private void writeMeta(){
+        Assert.notNull(out,"");
+
+    }
+    void beginFile(String partName) throws IOException{
+        if(out!=null){
+            out.putNextEntry(new ZipEntry(partName));
+        }
+
     }
     private void createSheet(XMLReader r){
         String name = r.getAttribute("name");
