@@ -33,7 +33,7 @@
     <repositories>
         <repository>
             <id>myrepo</id>
-            <url>http://36.158.32.29:18889/maven</url>
+            <url>https://raw.github.com/robinhoodjim/mvn-repo/main</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
