@@ -10,15 +10,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipFile;
-
+import org.apache.commons.io.FileExistsException;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.*;
-import java.nio.file.FileAlreadyExistsException;
 import java.util.*;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 import java.util.zip.ZipOutputStream;
@@ -157,7 +155,7 @@ public class OPCPackage implements Closeable {
             OPCPackage opcPackage=new OPCPackage(new FileOutputStream(fileName),bufferedSize);
             return opcPackage;
 
-        }catch (FileAlreadyExistsException | FileNotFoundException ex){
+        }catch (FileExistsException | FileNotFoundException ex){
 
         }
         return null;
