@@ -33,7 +33,7 @@
     <repositories>
         <repository>
             <id>myrepo</id>
-            <url>https://raw.github.com/robinhoodjim/mvn-repo/main</url>
+            <url>https://raw.githubusercontent.com/robinhood-jim/mvn-repo/main</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>
