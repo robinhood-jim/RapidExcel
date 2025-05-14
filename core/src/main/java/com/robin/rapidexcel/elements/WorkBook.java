@@ -2,61 +2,94 @@ package com.robin.rapidexcel.elements;
 
 import cn.hutool.core.io.FileUtil;
 import com.robin.comm.util.xls.ExcelSheetProp;
+import com.robin.core.fileaccess.util.ByteBufferOutputStream;
 import com.robin.rapidexcel.reader.XMLReader;
-import com.robin.rapidexcel.utils.MapSpliterator;
-import com.robin.rapidexcel.utils.OPCPackage;
-import com.robin.rapidexcel.utils.RowSpliterator;
-import com.robin.rapidexcel.utils.XMLFactoryUtils;
+import com.robin.rapidexcel.utils.*;
+import com.robin.rapidexcel.writer.XMLWriter;
+import org.apache.flink.core.memory.MemorySegment;
+import org.apache.flink.core.memory.MemorySegmentFactory;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.ObjectUtils;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.*;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 public class WorkBook implements Closeable {
-    private Map<Integer, CellType> styleMap;
-    private int activeTab = 0;
-    private boolean finished = false;
-    private String applicationName="com.robin FastExcel";
-    private String applicationVersion;
-    private ZipOutputStream out;
-    private OPCPackage opcPackage;
-    private List<WorkSheet> sheets=new ArrayList<>();
-    private Map<String, WorkSheet> sheetMap=new HashMap<>();
-    private boolean date1904;
-    private ExcelSheetProp prop;
-    private ShardingStrings shardingStrings;
+    Map<Integer, CellType> styleMap;
+    int activeTab = 0;
+    boolean finished = false;
+    String applicationName="com.robin FastExcel";
+    String applicationVersion;
+    OPCPackage opcPackage;
+    List<WorkSheet> sheets=new ArrayList<>();
+    Map<String, WorkSheet> sheetMap=new HashMap<>();
+    boolean date1904;
+    ExcelSheetProp prop;
+    ShardingStrings shardingStrings;
+    Map<Integer,OutputStream> sheetTmpStreamMap=new HashMap<>();
+    Map<Integer,MemorySegment> segmentMap=new HashMap<>();
+    XMLWriter writer;
+    static String sheetIdPrefix="rId";
+    int maxSheetSize=100*1024*1024;
+    String localTmpPath=null;
+    final Properties properties = new Properties();
+    boolean readWriteTag=false;
+    File file;
+    StyleHolder holder=new StyleHolder();
 
-    public WorkBook(File file,String applicationName,String applicationVersion){
+
+    public WorkBook(File file,ExcelSheetProp prop,String applicationName,String applicationVersion,int bufferSize){
         this.applicationName=applicationName;
         this.applicationVersion=applicationVersion;
-        opcPackage=OPCPackage.create(file);
+        this.prop=prop;
+        opcPackage=OPCPackage.create(file,bufferSize);
     }
 
-    public WorkBook(OutputStream cout,String applicationName,String applicationVersion){
-        this.out=new ZipOutputStream(cout);
+    public WorkBook(OutputStream cout,ExcelSheetProp prop,String applicationName,String applicationVersion,int bufferSize){
         this.applicationName=applicationName;
         this.applicationVersion=applicationVersion;
-        opcPackage=OPCPackage.create(out);
+        this.prop=prop;
+        opcPackage=OPCPackage.create(cout,bufferSize);
     }
-    public WorkBook(InputStream inputStream) throws XMLStreamException,IOException{
+    public WorkBook(InputStream inputStream,ExcelSheetProp prop) throws XMLStreamException,IOException{
         Assert.notNull(inputStream,"");
+        this.prop=prop;
         opcPackage=OPCPackage.open(inputStream);
         beginRead();
     }
-    public WorkBook(File file) throws XMLStreamException,IOException {
+    public WorkBook(File file,ExcelSheetProp prop) throws XMLStreamException,IOException {
         if(!FileUtil.exist(file)){
             throw new IOException("file not found!");
         }
+        this.file=file;
+        this.prop=prop;
         opcPackage=OPCPackage.open(file);
         beginRead();
     }
+    public WorkBook(File path,ExcelSheetProp prop,int bufferSize){
+        this.prop=prop;
+        this.file=path;
+        opcPackage=OPCPackage.create(path,bufferSize);
+        writer=new XMLWriter(opcPackage.getZipOutStream());
+    }
+    public WorkBook(OutputStream outputStream,ExcelSheetProp prop){
+        Assert.notNull(outputStream,"");
+        Assert.notNull(prop,"");
+        this.prop=prop;
+        opcPackage=OPCPackage.create(outputStream,0);
+        writer=new XMLWriter(opcPackage.getZipOutStream());
+    }
+
     public void setSheetProp(ExcelSheetProp prop){
         this.prop=prop;
     }
@@ -82,7 +115,7 @@ public class WorkBook implements Closeable {
                         this.activeTab = Integer.parseInt(activeTab);
                     }
                 } else if ("sheets".equals(reader.getLocalName())) {
-                    reader.forEach("sheet", "sheets", this::createSheet);
+                    reader.forEach("sheet", "sheets", this::parseSheet);
                 } else if ("workbookPr".equals(reader.getLocalName())) {
                     String date1904Value = reader.getAttribute("date1904");
                     date1904 = Boolean.parseBoolean(date1904Value);
@@ -93,17 +126,149 @@ public class WorkBook implements Closeable {
         }
         shardingStrings=ShardingStrings.formInputStream(opcPackage.getShardingStrings());
     }
-    private void writeMeta(){
-        Assert.notNull(out,"");
+    private void beginFlush() throws IOException{
+        Assert.notNull(opcPackage.getZipOutStream(),"");
+        writeFileContent("[Content_Types].xml", w -> {
+            w.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/>");
+
+            w.append("<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\"/><Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>");
+            for (WorkSheet ws : sheets) {
+                int index = getIndex(ws);
+                w.append("<Override PartName=\"/xl/worksheets/sheet").append(index).append(".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>");
+
+            }
+            w.append("<Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>");
+            w.append("<Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/>");
+
+            w.append("</Types>");
+        });
+        writeFileContent("_rels/.rels", w -> {
+            w.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>");
+            w.append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
+            w.append("<Relationship Id=\"rId3\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties\" Target=\"docProps/app.xml\"/>");
+            w.append("<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties\" Target=\"docProps/core.xml\"/>");
+            w.append("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>");
+
+            w.append("</Relationships>");
+        });
+        writeFileContent("xl/_rels/workbook.xml.rels", w -> {
+            w.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Target=\"sharedStrings.xml\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings\"/><Relationship Id=\"rId2\" Target=\"styles.xml\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\"/>");
+            for (WorkSheet ws : sheets) {
+                w.append("<Relationship Id=\"rId").append(getIndex(ws) + 2).append("\" Target=\"worksheets/sheet").append(getIndex(ws)).append(".xml\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\"/>");
+            }
+            w.append("</Relationships>");
+        });
+        writeProperty();
 
     }
-    void beginFile(String partName) throws IOException{
-        if(out!=null){
-            out.putNextEntry(new ZipEntry(partName));
+    void writeProperty() throws IOException{
+        writeFileContent("docProps/app.xml", w -> {
+            w.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+            w.append("<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\">");
+            w.append("<Application>").appendEscaped(applicationName).append("</Application>");
+            String manager = properties.getManager();
+            if (manager != null) {
+                w.append("<Manager>");
+                w.appendEscaped(manager);
+                w.append("</Manager>");
+            }
+            String company = properties.getCompany();
+            if (company != null) {
+                w.append("<Company>");
+                w.appendEscaped(company);
+                w.append("</Company>");
+            }
+            String hyperlinkBase = properties.getHyperlinkBase();
+            if (hyperlinkBase != null) {
+                w.append("<HyperlinkBase>");
+                w.appendEscaped(hyperlinkBase);
+                w.append("</HyperlinkBase>");
+            }
+            if (applicationVersion != null) {
+                w.append("<AppVersion>");
+                w.appendEscaped(applicationVersion);
+                w.append("</AppVersion>");
+            }
+            w.append("</Properties>");
+        });
+        writeFileContent("docProps/core.xml", w -> {
+            w.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
+            w.append("<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+            String title = properties.getTitle();
+            if (title != null) {
+                w.append("<dc:title>");
+                w.appendEscaped(title);
+                w.append("</dc:title>");
+            }
+            String subject = properties.getSubject();
+            if (subject != null) {
+                w.append("<dc:subject>");
+                w.appendEscaped(subject);
+                w.append("</dc:subject>");
+            }
+            w.append("<dc:creator>");
+            w.appendEscaped(applicationName);
+            w.append("</dc:creator>");
+            String keywords = properties.getKeywords();
+            if (keywords != null) {
+                w.append("<cp:keywords>");
+                w.appendEscaped(keywords);
+                w.append("</cp:keywords>");
+            }
+            String description = properties.getDescription();
+            if (description != null) {
+                w.append("<dc:description>");
+                w.appendEscaped(description);
+                w.append("</dc:description>");
+            }
+            w.append("<dcterms:created xsi:type=\"dcterms:W3CDTF\">");
+            w.append(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX").withZone(ZoneId.of("UTC")).format(Instant.now()));
+            w.append("</dcterms:created>");
+            String category = properties.getCategory();
+            if (category != null) {
+                w.append("<cp:category>");
+                w.appendEscaped(category);
+                w.append("</cp:category>");
+            }
+            w.append("</cp:coreProperties>");
+        });
+    }
+    void beginPart(String partName) throws IOException{
+        if(opcPackage.getZipOutStream()!=null){
+            opcPackage.getZipOutStream().putNextEntry(new ZipEntry(partName));
         }
 
     }
-    private void createSheet(XMLReader r){
+    void writeFileContent(String partName, ThrowableConsumer<XMLWriter> consumer) throws IOException{
+        beginPart(partName);
+        consumer.accept(writer);
+        opcPackage.getZipOutStream().closeEntry();
+    }
+    void beginSheetWrite(String sheetName){
+
+    }
+    void beginSheetWrite(WorkSheet sheet) throws IOException{
+        int id=sheet.getIndex();
+        if(prop.isUseOffHeap()){
+            MemorySegment segment= MemorySegmentFactory.allocateOffHeapUnsafeMemory(maxSheetSize);
+            segmentMap.put(id,segment);
+            sheetTmpStreamMap.put(id,new ByteBufferOutputStream(segment.getOffHeapBuffer()));
+        }else{
+            if(localTmpPath==null){
+                localTmpPath=System.getProperty("tmp.path")+File.separator+System.currentTimeMillis();
+                FileUtil.mkdir(localTmpPath);
+                String localSheetPath=localTmpPath+"sheet"+id+".xml";
+                sheetTmpStreamMap.put(id,new FileOutputStream(localSheetPath));
+            }
+        }
+        sheet.writeHeader(sheetTmpStreamMap.get(id));
+    }
+    int getIndex(WorkSheet ws) {
+        synchronized (sheets) {
+            return sheets.indexOf(ws) + 1;
+        }
+    }
+    private void parseSheet(XMLReader r){
         String name = r.getAttribute("name");
         String id = r.getAttribute("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
         String sheetId = r.getAttribute("sheetId");
@@ -120,6 +285,21 @@ public class WorkBook implements Closeable {
         sheets.add(sheet);
         sheetMap.put(name,sheet);
     }
+    public void createSheet(String sheetName){
+        int idx=sheets.size();
+        idx++;
+        WorkSheet sheet=new WorkSheet(this,idx,sheetIdPrefix+idx,sheetIdPrefix+idx,sheetName,SheetVisibility.VISIBLE);
+        sheets.add(sheet);
+        sheetMap.put(sheetName,sheet);
+
+    }
+    public WorkSheet getSheet(String sheetName){
+        if(sheetMap.containsKey(sheetName)){
+            return sheetMap.get(sheetName);
+        }
+        return null;
+    }
+
     public Stream<Row> openStream(WorkSheet sheet) throws IOException{
         try{
             InputStream inputStream=opcPackage.getSheetContent(sheet);
@@ -148,12 +328,16 @@ public class WorkBook implements Closeable {
         };
     }
 
-    public void finish(){
+    public void finish() throws IOException{
         if(finished){
             return;
         }
         if(CollectionUtils.isEmpty(sheets)){
             throw new IllegalArgumentException("A workbook must contain at least one worksheet.");
+        }
+        beginFlush();
+        for (WorkSheet ws : sheets) {
+            //ws.close();
         }
 
     }
@@ -184,21 +368,27 @@ public class WorkBook implements Closeable {
         if(opcPackage!=null){
             opcPackage.close();
         }
-        if(out!=null){
-            out.closeEntry();
-            out.close();
-        }
     }
+    public void setGlobalDefaultFont(String fontName, double fontSize) {
+        this.setGlobalDefaultFont(Font.build(null, null, null, fontName, BigDecimal.valueOf(fontSize), null, null));
+    }
+    public void setGlobalDefaultFont(Font font) {
+        Font.DEFAULT = font;
+        this.holder.replaceDefaultFont(font);
+    }
+
 
     public static class Builder{
         private static Builder builder;
-        private static WorkBook workBook;
-        private boolean useWriter=false;
-        private static String applicationName;
-        private String applicationVersion;
-        private static InputStream inputStream;
         private File file;
+        private boolean readWriteTag=false;
+        private String applicationName;
+        private String applicationVersion;
+
+        private InputStream inputStream;
         private OutputStream outputStream;
+        private ExcelSheetProp prop;
+        private int bufferSize=0;
 
         private Builder(){
 
@@ -223,9 +413,44 @@ public class WorkBook implements Closeable {
             this.applicationVersion=applicationVersion;
             return this;
         }
-
-
-
+        public Builder writeFile(String fileName){
+            this.file=new File(fileName);
+            this.readWriteTag=true;
+            return this;
+        }
+        public Builder writeFile(File file){
+            this.file=file;
+            this.readWriteTag=true;
+            return this;
+        }
+        public Builder writeOutputStream(OutputStream outputStream){
+            this.outputStream=outputStream;
+            this.readWriteTag=true;
+            return this;
+        }
+        public Builder sheetProp(ExcelSheetProp prop){
+            this.prop=prop;
+            return this;
+        }
+        public Builder bufferSize(int bufferSize){
+            this.bufferSize=bufferSize;
+            return this;
+        }
+        public WorkBook build() throws IOException,XMLStreamException{
+            if(!readWriteTag){
+                if(file!=null){
+                    return new WorkBook(file,prop);
+                }else{
+                    return new WorkBook(inputStream,prop);
+                }
+            }else{
+                if(file!=null){
+                    return new WorkBook(file,prop,applicationName,applicationVersion,bufferSize);
+                }else{
+                    return new WorkBook(outputStream,prop,applicationName,applicationVersion,bufferSize);
+                }
+            }
+        }
     }
 
 }

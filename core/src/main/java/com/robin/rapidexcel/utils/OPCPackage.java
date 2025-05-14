@@ -1,7 +1,10 @@
 package com.robin.rapidexcel.utils;
 
 
+import com.robin.comm.util.xls.ExcelColumnProp;
+import com.robin.core.base.util.Const;
 import com.robin.core.base.util.FileUtils;
+import com.robin.rapidexcel.elements.CellType;
 import com.robin.rapidexcel.elements.RelationShip;
 import com.robin.rapidexcel.elements.WorkSheet;
 import com.robin.rapidexcel.exception.ExcelException;
@@ -60,7 +63,7 @@ public class OPCPackage implements Closeable {
 
     private ZipOutputStream zipOutStream;
     private BufferedOutputStream bufferedStream;
-    private FileOutputStream fileOutputStream;
+    private FileOutputStream fileOutputStream=null;
     private static int DEFAULTBUFFEREDSIZE=4096;
     private ZipStreamEntry entry;
     private String workBookPath;
@@ -85,8 +88,7 @@ public class OPCPackage implements Closeable {
     private Map<String,RelationShip> relationShipTypeMap=new HashMap<>();
     private String applicationName;
     private String appVersion;
-
-
+    private boolean readWriteMode=false;
 
     private OPCPackage(File zipFile){
         try{
@@ -97,16 +99,18 @@ public class OPCPackage implements Closeable {
         }
 
     }
-    private OPCPackage(FileOutputStream fileOutputStream){
-        this(fileOutputStream,DEFAULTBUFFEREDSIZE);
-    }
-    private OPCPackage(FileOutputStream fileOutputStream,int bufferedSize){
+    private OPCPackage(File targetFile,int bufferedSize) throws IOException{
         Assert.isTrue(bufferedSize>0,"");
-        this.fileOutputStream=fileOutputStream;
+        readWriteMode=true;
+        this.fileOutputStream=new FileOutputStream(targetFile);
         this.bufferedStream=new BufferedOutputStream(fileOutputStream,bufferedSize);
+        this.zipOutStream=new ZipOutputStream(fileOutputStream);
     }
+
     private OPCPackage(OutputStream outputStream,int bufferedSize){
         this.bufferedStream=new BufferedOutputStream(outputStream,bufferedSize>0?bufferedSize:DEFAULTBUFFEREDSIZE);
+        readWriteMode=true;
+        zipOutStream=new ZipOutputStream(bufferedStream);
     }
     private OPCPackage(InputStream stream,String encode){
         zipStreams=new ZipArchiveInputStream(stream,encode);
@@ -152,10 +156,10 @@ public class OPCPackage implements Closeable {
     public static OPCPackage create(File fileName,int bufferedSize){
         try{
             FileUtils.mkDirReclusive(fileName.getAbsolutePath());
-            OPCPackage opcPackage=new OPCPackage(new FileOutputStream(fileName),bufferedSize);
+            OPCPackage opcPackage=new OPCPackage(fileName,bufferedSize);
             return opcPackage;
 
-        }catch (FileExistsException | FileNotFoundException ex){
+        }catch (IOException ex){
 
         }
         return null;
@@ -280,6 +284,11 @@ public class OPCPackage implements Closeable {
     public InputStream getShardingStrings() throws IOException{
         return getRequiredEntryContent(shardingStringsPath);
     }
+    public void finish(){
+        if(readWriteMode){
+
+        }
+    }
 
 
     @Override
@@ -314,5 +323,36 @@ public class OPCPackage implements Closeable {
     }
     public Map<String,String> getFormatMap(){
         return formatMap;
+    }
+
+    public ZipFile getZipFile() {
+        return zipFile;
+    }
+
+    public ZipOutputStream getZipOutStream() {
+        return zipOutStream;
+    }
+
+    public BufferedOutputStream getBufferedStream() {
+        return bufferedStream;
+    }
+    public static CellType parseCellType(ExcelColumnProp prop){
+        CellType type=CellType.EMPTY;
+        switch (prop.getColumnType()){
+            case Const.META_TYPE_BIGINT:
+            case Const.META_TYPE_FLOAT:
+            case Const.META_TYPE_DOUBLE:
+            case Const.META_TYPE_DECIMAL:
+            case Const.META_TYPE_INTEGER:
+            case Const.META_TYPE_TIMESTAMP:
+                type=CellType.NUMBER;
+            case Const.META_TYPE_BOOLEAN:
+                type=CellType.BOOLEAN;
+            case Const.META_TYPE_FORMULA:
+                type=CellType.FORMULA;
+            default:
+                type=CellType.STRING;
+        }
+        return type;
     }
 }

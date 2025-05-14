@@ -20,16 +20,14 @@ public class TestRead {
     @Test
     public void testRead() throws IOException{
         new BufferedReader(new InputStreamReader(System.in)).readLine();
-        ExcelSheetProp prop = new ExcelSheetProp();
-        prop.addColumnProp(new ExcelColumnProp("name", "name", Const.META_TYPE_STRING, false));
-        prop.addColumnProp(new ExcelColumnProp("time", "time", Const.META_TYPE_TIMESTAMP, false));
-        prop.addColumnProp(new ExcelColumnProp("intcol", "intcol", Const.META_TYPE_INTEGER, false));
-        prop.addColumnProp(new ExcelColumnProp("dval", "dval", Const.META_TYPE_DOUBLE, false));
-        prop.addColumnProp(new ExcelColumnProp("dval2", "dval2", Const.META_TYPE_DOUBLE, false));
-        prop.addColumnProp(new ExcelColumnProp("diff", "diff", Const.META_TYPE_FORMULA, "(D{P}-E{P})/C{P}"));
-        prop.setStreamMode(true);
-        try(WorkBook workBook=new WorkBook(new File("D:/test2.xlsx"))){
-            workBook.setSheetProp(prop);
+        ExcelSheetProp.Builder builder = ExcelSheetProp.Builder.newBuilder();
+        builder.addColumnProp(new ExcelColumnProp("name", "name", Const.META_TYPE_STRING, false))
+        .addColumnProp("time", "time", Const.META_TYPE_TIMESTAMP, false)
+        .addColumnProp("intcol", "intcol", Const.META_TYPE_INTEGER, false)
+        .addColumnProp("dval", "dval", Const.META_TYPE_DOUBLE, false)
+        .addColumnProp("dval2", "dval2", Const.META_TYPE_DOUBLE, false)
+        .addColumnProp(new ExcelColumnProp("diff", "diff", Const.META_TYPE_FORMULA, "(D{P}-E{P})/C{P}")).setStreamMode();
+        try(WorkBook workBook=new WorkBook(new File("D:/test2.xlsx"),builder.build())){
             int sheetNum= workBook.getSheetNum();
             for(int i=0;i<sheetNum;i++){
                 WorkSheet sheet=workBook.getSheet(i).get();

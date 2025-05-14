@@ -16,6 +16,11 @@ public class Cell {
     public Cell(WorkBook workbook, CellType type, Object value, CellAddress address, String formula, String rawValue) {
         this(workbook, type, value, address, formula, rawValue, null, null);
     }
+    public Cell(WorkBook workBook,CellType type,CellAddress address){
+        this.workBook=workBook;
+        this.type=type;
+        this.address=address;
+    }
     public Cell(WorkBook workBook, CellProcessor processor,CellAddress address){
         this(workBook,processor.getCellType(),processor.getValue(),address,processor.getFormula(),processor.getRawValue());
     }

@@ -50,7 +50,7 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
         }else{
             containHeaders=true;
             needIdentifyColumn=true;
-            prop=new ExcelSheetProp();
+            prop=ExcelSheetProp.Builder.newBuilder().build();
         }
         r.goTo("sheetData");
     }

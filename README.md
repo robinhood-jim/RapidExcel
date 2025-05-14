@@ -15,7 +15,7 @@ This tools does not supoort 2003 xls format!
 <dependency>
     <groupId>org.robin.rapidexcel</groupId>
     <artifactId>core</artifactId>
-    <version>0.10</version>
+    <version>0.1</version>
 </dependency>
 ```
 
@@ -28,9 +28,7 @@ ExcelSheetProp prop = new ExcelSheetProp();
 //define Excel column metadata
 prop.addColumnProp(new ExcelColumnProp("name", "name", Const.META_TYPE_STRING, false));
 ......
-try(WorkBook workBook=new WorkBook(new File("D:/test2.xlsx"))){
-    //set metadata
-    workBook.setSheetProp(prop);
+try(WorkBook workBook=new WorkBook(new File("D:/test2.xlsx"),prop)){
     int sheetNum= workBook.getSheetNum();
     for(int i=0;i<sheetNum;i++){
         WorkSheet sheet=workBook.getSheet(i).get();
