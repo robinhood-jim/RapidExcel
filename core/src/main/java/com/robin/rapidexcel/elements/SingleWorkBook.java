@@ -1,6 +1,7 @@
 package com.robin.rapidexcel.elements;
 
 import com.robin.comm.util.xls.ExcelSheetProp;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.File;
@@ -9,6 +10,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
 
+@Slf4j
 public class SingleWorkBook extends WorkBook {
     private ExcelSheetProp prop;
     private WorkSheet currentSheet;
@@ -58,7 +60,7 @@ public class SingleWorkBook extends WorkBook {
     }
     public boolean writeRow(Map<String,Object> valueMap) throws IOException{
         if(totalRow>0 && totalRow % sheetMaxRows==0){
-            System.out.println(" finish sheet "+currentSheet.getIndex());
+            log.debug(" finish sheet "+currentSheet.getIndex());
             currentSheet.finish();
             beginWrite();
         }

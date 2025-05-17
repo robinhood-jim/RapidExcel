@@ -22,7 +22,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import java.util.zip.ZipEntry;
@@ -50,7 +49,6 @@ public class WorkBook implements Closeable {
     File file;
     StyleHolder holder=new StyleHolder();
     Map<String,ShardingString> shardingStringMap=new HashMap<>();
-    private ArrayList<RelationShip> relationship = new ArrayList<>();
 
     public WorkBook(File file,String applicationName,String applicationVersion,int bufferSize){
         this.applicationName=applicationName;
@@ -252,9 +250,6 @@ public class WorkBook implements Closeable {
             }
             w.append("</sheets>");
 
-            /** Defining repeating rows and columns for the print setup...
-             *  This is defined for each sheet separately
-             * (if there are any repeating rows or cols in the sheet at all) **/
             //w.append("<definedNames>");
 
             //w.append("</definedNames>");
@@ -398,8 +393,10 @@ public class WorkBook implements Closeable {
                     FileUtil.del(localTmpPath+File.separator+"sheet"+ws.getIndex()+".xml");
                 }
             }
-            FileUtil.del(localTmpPath);
             outputStream.closeEntry();
+        }
+        if(!sheets.get(0).prop.isUseOffHeap()) {
+            FileUtil.del(localTmpPath);
         }
     }
     public ShardingStrings getShardingStrings(){
