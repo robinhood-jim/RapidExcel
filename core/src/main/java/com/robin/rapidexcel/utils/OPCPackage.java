@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipFile;
-import org.apache.commons.io.FileExistsException;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
@@ -29,7 +28,7 @@ import static java.lang.String.format;
 @Slf4j
 public class OPCPackage implements Closeable {
     private static final Pattern filenameRegex = Pattern.compile("^(.*/)([^/]+)$");
-    private static final Map<String, String> IMPLICIT_NUM_FMTS = new HashMap<>() {{
+    public static final Map<String, String> IMPLICIT_NUM_FMTS = new HashMap<>() {{
         put("1", "0");
         put("2", "0.00");
         put("3", "#,##0");
@@ -100,10 +99,9 @@ public class OPCPackage implements Closeable {
 
     }
     private OPCPackage(File targetFile,int bufferedSize) throws IOException{
-        Assert.isTrue(bufferedSize>0,"");
         readWriteMode=true;
         this.fileOutputStream=new FileOutputStream(targetFile);
-        this.bufferedStream=new BufferedOutputStream(fileOutputStream,bufferedSize);
+        this.bufferedStream=new BufferedOutputStream(fileOutputStream,bufferedSize>0?bufferedSize:DEFAULTBUFFEREDSIZE);
         this.zipOutStream=new ZipOutputStream(fileOutputStream);
     }
 
@@ -301,13 +299,14 @@ public class OPCPackage implements Closeable {
         }
         if(bufferedStream!=null){
             bufferedStream.flush();
-            if(fileOutputStream!=null){
-                fileOutputStream.close();
-            }
             if(zipOutStream!=null){
                 zipOutStream.closeEntry();
                 zipOutStream.close();
             }
+            if(fileOutputStream!=null){
+                fileOutputStream.close();
+            }
+
         }
     }
 
@@ -346,10 +345,13 @@ public class OPCPackage implements Closeable {
             case Const.META_TYPE_INTEGER:
             case Const.META_TYPE_TIMESTAMP:
                 type=CellType.NUMBER;
+                break;
             case Const.META_TYPE_BOOLEAN:
                 type=CellType.BOOLEAN;
+                break;
             case Const.META_TYPE_FORMULA:
                 type=CellType.FORMULA;
+                break;
             default:
                 type=CellType.STRING;
         }

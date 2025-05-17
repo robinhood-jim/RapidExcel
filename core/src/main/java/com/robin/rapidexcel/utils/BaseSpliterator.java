@@ -272,7 +272,7 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
             return empty(addr, CellType.STRING);
         }
         int index = Integer.parseInt(v);
-        String sharedStringValue = workBook.getShardingStrings().getValues().get(index);
+        String sharedStringValue = workBook.getShardingStrings().getValues().get(index).getValue();
         processor.setValue(sharedStringValue);
         processor.setFormula(null);
         processor.setRawValue(sharedStringValue);

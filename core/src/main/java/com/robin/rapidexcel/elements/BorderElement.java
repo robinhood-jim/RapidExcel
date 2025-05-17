@@ -1,5 +1,9 @@
 package com.robin.rapidexcel.elements;
 
+import com.robin.rapidexcel.writer.XMLWriter;
+
+import java.io.IOException;
+
 public class BorderElement {
     protected static final BorderElement NONE = new BorderElement(null, null);
 
@@ -17,5 +21,20 @@ public class BorderElement {
     BorderElement(String style, String rgbColor) {
         this.style = style;
         this.rgbColor = rgbColor;
+    }
+    void write(String name, XMLWriter w) throws IOException {
+        w.append("<").append(name);
+        if (style == null && rgbColor == null) {
+            w.append("/>");
+        } else {
+            if (style != null) {
+                w.append(" style=\"").append(style).append("\"");
+            }
+            w.append(">");
+            if (rgbColor != null) {
+                w.append("<color rgb=\"").append(rgbColor).append("\"/>");
+            }
+            w.append("</").append(name).append(">");
+        }
     }
 }

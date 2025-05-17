@@ -35,12 +35,26 @@ public class CellStyle implements IWriteableElements{
     public int hashCode() {
         return Objects.hash(valueFormatting, font, fill, border, alignment);
     }
-
+    @Override
+    public boolean equals(Object obj) {
+        boolean result;
+        if (obj != null && obj.getClass() == this.getClass()) {
+            CellStyle other = (CellStyle) obj;
+            result = Objects.equals(valueFormatting, other.valueFormatting)
+                    && Objects.equals(font, other.font)
+                    && Objects.equals(fill, other.fill)
+                    && Objects.equals(border, other.border)
+                    && Objects.equals(alignment, other.alignment);
+        } else {
+            result = false;
+        }
+        return result;
+    }
     @Override
     public void writeOut(XMLWriter w) throws IOException {
         w.append("<xf numFmtId=\"").append(valueFormatting).append("\" fontId=\"").append(font).append("\" fillId=\"").append(fill).append("\" borderId=\"").append(border).append("\" xfId=\"0\"");
         if (border != 0) {
-            w.append(" applyBorder=\"1\"");
+            w.append(" applyBorder=\"true\"");
         }
 
         if (alignment == null) {
@@ -48,11 +62,11 @@ public class CellStyle implements IWriteableElements{
             return;
         }
         if (alignment != null) {
-            w.append(" applyAlignment=\"1\"");
+            w.append(" applyAlignment=\"true\"");
         }
 
 
-        w.append('>');
+        w.append(">");
         if (alignment != null) {
             alignment.writeOut(w);
         }

@@ -1,10 +1,14 @@
 package com.robin.rapidexcel.elements;
 
+import com.robin.rapidexcel.writer.XMLWriter;
+
+import java.io.IOException;
 import java.util.EnumMap;
 import java.util.Map;
 
-public class Border {
+public class Border implements IWriteableElements{
     protected static final Border NONE = new Border();
+    static final Border BLACK=new Border(new BorderElement(null,"FFFFFFFF"));
 
     /**
      * Border elements.
@@ -38,5 +42,18 @@ public class Border {
         elements.put(BorderSide.BOTTOM, bottom);
         elements.put(BorderSide.RIGHT, right);
         elements.put(BorderSide.DIAGONAL, diagonal);
+    }
+
+    @Override
+    public void writeOut(XMLWriter w) throws IOException {
+        w.append("<border");
+
+        w.append(">");
+        elements.get(BorderSide.LEFT).write("left", w);
+        elements.get(BorderSide.RIGHT).write("right", w);
+        elements.get(BorderSide.TOP).write("top", w);
+        elements.get(BorderSide.BOTTOM).write("bottom", w);
+        elements.get(BorderSide.DIAGONAL).write("diagonal", w);
+        w.append("</border>");
     }
 }

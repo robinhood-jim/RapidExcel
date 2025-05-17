@@ -1,10 +1,16 @@
 package com.robin.rapidexcel.elements;
 
-public class Fill {
+import com.robin.rapidexcel.writer.XMLWriter;
+
+import java.io.IOException;
+
+public class Fill implements IWriteableElements{
     protected static final Fill NONE = new Fill("none", null, true);
 
 
     protected static final Fill GRAY125 = new Fill("gray125", null, true);
+    protected static final Fill DARKGRAY = new Fill("darkGray", null, true);
+    protected static final Fill BLACK = new Fill("black",null , true);
 
 
     private final String patternType;
@@ -24,4 +30,14 @@ public class Fill {
         return new Fill("solid", colorRgb, fg);
     }
 
+    @Override
+    public void writeOut(XMLWriter w) throws IOException {
+        w.append("<fill><patternFill patternType=\"").append(patternType).append("\"");
+        if (colorRgb == null) {
+            w.append("/>");
+        } else {
+            w.append("><").append(fg ? "fg" : "bg").append("Color rgb=\"").append(colorRgb).append("\"/></patternFill>");
+        }
+        w.append("</fill>");
+    }
 }

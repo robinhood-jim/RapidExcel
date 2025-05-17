@@ -24,20 +24,37 @@ This tools does not supoort 2003 xls format!
 ### Simple read
 Read workbook with Sheet define
 ```java
-ExcelSheetProp prop = new ExcelSheetProp();
+ExcelSheetProp.Builder builder = ExcelSheetProp.Builder.newBuilder();
 //define Excel column metadata
-prop.addColumnProp(new ExcelColumnProp("name", "name", Const.META_TYPE_STRING, false));
+builder.addColumnProp(new ExcelColumnProp("name", "name", Const.META_TYPE_STRING, false));
 ......
-try(WorkBook workBook=new WorkBook(new File("D:/test2.xlsx"),prop)){
+try(WorkBook workBook=new WorkBook(new File("D:/test2.xlsx"))){
     int sheetNum= workBook.getSheetNum();
     for(int i=0;i<sheetNum;i++){
         WorkSheet sheet=workBook.getSheet(i).get();
         //get stream rows
-        Stream<Row> stream= workBook.openStream(sheet);
+        Stream<Row> stream= workBook.openStream(sheet,builder.build());
         ....
     }
 }
 ```
 
 ### Simple write
-under development
+
+using Single sheet config
+
+```java
+ExcelSheetProp.Builder builder = ExcelSheetProp.Builder.newBuilder();
+//define Excel column metadata
+builder.addColumnProp(new ExcelColumnProp("name", "name", Const.META_TYPE_STRING, false));
+......
+Map<String,Object> cachedMap=new HashMap<>();
+try(SingleWorkBook workBook=new SingleWorkBook(new File("d:/test111.xlsx"),0,builder.build())){
+    
+    for(int j=0;j<1200;j++){
+        ......
+        //mock data
+        workBook.writeRow(cachedMap);
+    }
+}
+```

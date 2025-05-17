@@ -11,10 +11,10 @@ import java.util.zip.ZipOutputStream;
 public class XMLWriter {
 
     private StringBuilder sb;
-    private ZipOutputStream zipOutputStream;
+    private OutputStream zipOutputStream;
 
 
-    public XMLWriter(ZipOutputStream outputStream){
+    public XMLWriter(OutputStream outputStream){
         this.zipOutputStream=outputStream;
         this.sb=new StringBuilder(512*1024);
     }
@@ -38,18 +38,30 @@ public class XMLWriter {
         check();
         return this;
     }
+    public XMLWriter append(long n) throws IOException {
+        sb.append(n);
+        check();
+        return this;
+    }
+
+
+    public XMLWriter append(double n) throws IOException {
+        sb.append(n);
+        check();
+        return this;
+    }
     private void check() throws IOException {
         if (sb.capacity() - sb.length() < 1024) {
             flush();
         }
     }
-    void flush() throws IOException {
+    public void flush() throws IOException {
         zipOutputStream.write(sb.toString().getBytes(StandardCharsets.UTF_8));
         zipOutputStream.flush();
         sb.setLength(0);
     }
 
     public ZipOutputStream getZipOutputStream() {
-        return zipOutputStream;
+        return (ZipOutputStream) zipOutputStream;
     }
 }

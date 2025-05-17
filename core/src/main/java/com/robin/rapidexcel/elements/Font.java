@@ -1,9 +1,12 @@
 package com.robin.rapidexcel.elements;
 
+import com.robin.rapidexcel.writer.XMLWriter;
+
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public class Font {
+public class Font implements IWriteableElements {
     public static Font DEFAULT = build(false, false, false, "Calibri", BigDecimal.valueOf(11.0), "FF000000", false);
 
     /**
@@ -48,5 +51,16 @@ public class Font {
     }
     public static Font build(Boolean bold, Boolean italic, Boolean underlined, String name, BigDecimal size, String rgbColor, Boolean strikethrough) {
         return new Font(bold != null? bold : DEFAULT.bold, italic != null ? italic : DEFAULT.italic , underlined != null ? underlined : DEFAULT.underlined, name != null ? name : DEFAULT.name, size != null ?  size:DEFAULT.size, rgbColor != null ?  rgbColor: DEFAULT.rgbColor, strikethrough != null ? strikethrough : DEFAULT.strikethrough);
+    }
+
+    @Override
+    public void writeOut(XMLWriter w) throws IOException {
+        w.append("<font>").append(bold ? "<b/>" : "").append(italic ? "<i/>" : "").append(underlined ? "<u/>" : "").append("<sz val=\"").append(size.toString()).append("\"/>");
+        w.append(strikethrough ? "<strike/>" : "");
+        if (rgbColor != null) {
+            w.append("<color rgb=\"").append(rgbColor).append("\"/>");
+        }
+        w.append("<name val=\"").append(name).append("\"/>");
+        w.append("</font>");
     }
 }

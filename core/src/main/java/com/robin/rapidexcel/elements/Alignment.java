@@ -22,21 +22,33 @@ public class Alignment implements IWriteableElements{
     public int hashCode() {
         return Objects.hash(horizontal, vertical, wrapText);
     }
-
+    @Override
+    public boolean equals(Object obj) {
+        boolean result;
+        if (obj != null && obj.getClass() == this.getClass()) {
+            Alignment other = (Alignment) obj;
+            result = Objects.equals(horizontal, other.horizontal) && Objects.equals(vertical, other.vertical)
+                    && Objects.equals(wrapText, other.wrapText) && Objects.equals(rotation, other.rotation)
+                    && Objects.equals(indent, other.indent);
+        } else {
+            result = false;
+        }
+        return result;
+    }
     @Override
     public void writeOut(XMLWriter w) throws IOException {
         w.append("<alignment");
         if (horizontal != null) {
-            w.append(" horizontal=\"").append(horizontal).append('\"');
+            w.append(" horizontal=\"").append(horizontal).append("\"");
         }
         if (vertical != null) {
-            w.append(" vertical=\"").append(vertical).append('\"');
+            w.append(" vertical=\"").append(vertical).append("\"");
         }
         if (rotation != 0) {
-            w.append(" textRotation=\"").append(rotation).append('\"');
+            w.append(" textRotation=\"").append(rotation).append("\"");
         }
         if (indent != 0) {
-            w.append(" indent=\"").append(indent).append('\"');
+            w.append(" indent=\"").append(indent).append("\"");
         }
         if (wrapText) {
             w.append(" wrapText=\"true\"");

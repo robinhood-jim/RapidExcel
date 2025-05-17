@@ -2,6 +2,7 @@ package com.robin.rapidexcel.elements;
 
 import com.robin.rapidexcel.reader.XMLReader;
 import com.robin.rapidexcel.utils.XMLFactoryUtils;
+import com.robin.rapidexcel.writer.XMLWriter;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
@@ -9,8 +10,8 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardingStrings {
-    private List<String> values=new ArrayList<>();
+public class ShardingStrings implements IWriteableElements {
+    private List<ShardingString> values=new ArrayList<>();
     private InputStream inputStream;
     private ShardingStrings(InputStream inputStream){
         this.inputStream=inputStream;
@@ -20,7 +21,11 @@ public class ShardingStrings {
         shardingStrings.construct();
         return shardingStrings;
     }
+    public ShardingStrings(){
+        
+    }
     private void construct() throws XMLStreamException, IOException{
+        int pos=0;
         try(XMLReader reader=new XMLReader(XMLFactoryUtils.getDefaultInputFactory(),inputStream)){
             while (reader.hasNext()) {
                 reader.goTo("si");
@@ -36,12 +41,25 @@ public class ShardingStrings {
                         reader.goTo(() -> reader.isEndElement("rPh"));
                     }
                 }
-                values.add(sb.toString());
+                if(sb.length()>0) {
+                    values.add(new ShardingString(sb.toString(),pos++));
+                }
             }
         }
     }
 
-    public List<String> getValues() {
+    public List<ShardingString> getValues() {
         return values;
+    }
+
+    @Override
+    public void writeOut(XMLWriter writer) throws IOException {
+        writer.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n")
+                .append("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"10\" uniqueCount=\"")
+        .append(values.size()+"\">\n");
+        for(ShardingString value:values){
+            writer.append("<si><t>").appendEscaped(value.getValue()).append("</t></si>");
+        }
+        writer.append("\n</sst>");
     }
 }
