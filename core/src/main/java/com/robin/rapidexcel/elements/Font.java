@@ -1,5 +1,6 @@
 package com.robin.rapidexcel.elements;
 
+import com.robin.rapidexcel.utils.CellUtils;
 import com.robin.rapidexcel.writer.XMLWriter;
 
 import java.io.IOException;
@@ -7,7 +8,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 
 public class Font implements IWriteableElements {
-    public static Font DEFAULT = build(false, false, false, "Calibri", BigDecimal.valueOf(11.0), "FF000000", false);
+    public static Font DEFAULT = build(false, false, false, CellUtils.getDefaultFontName(), BigDecimal.valueOf(12.0), "FF000000", false);
 
     /**
      * Bold flag.

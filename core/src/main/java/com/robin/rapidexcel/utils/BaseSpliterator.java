@@ -107,9 +107,9 @@ abstract class BaseSpliterator<T> implements Spliterator<T> {
                 prop.addColumnProp(new ExcelColumnProp(cell.getValue().toString(),cell.getValue().toString(), Const.META_TYPE_STRING));
             }
         }
-        initHeader();
+        initCells();
     }
-    abstract void initHeader();
+    abstract void initCells();
     CellAddress getCellAddressWithFallback(int trackedColIndex) {
         String cellRefOrNull = r.getAttribute("r");
         CellAddress address=addressMap.get(trackedColIndex);

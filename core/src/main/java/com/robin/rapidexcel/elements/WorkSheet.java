@@ -44,7 +44,7 @@ public class WorkSheet {
     private int currentRowNum=1;
     private List<Integer> styles=new ArrayList<>();
     ExcelSheetProp prop;
-    String defaultFontName= Locale.CHINA.equals(Locale.getDefault()) || Locale.SIMPLIFIED_CHINESE.equals(Locale.getDefault()) ? "宋体" : "Calibri";;
+
     Font defaultFont;
     Fill defaultFill;
     Border defaultBorder;
@@ -71,8 +71,6 @@ public class WorkSheet {
 
     public void writeHeader(XMLWriter w) throws IOException {
 
-        int index = workBook.getIndex(this);
-        //workBook.beginPart("xl/worksheets/sheet" + index + ".xml");
         w.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         w.append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
         w.append("<sheetPr filterMode=\"" + "false" + "\">");
@@ -220,7 +218,7 @@ public class WorkSheet {
         }
     }
     Font getDefaultFont(){
-        Font font=new Font(false,false,false,defaultFontName,new BigDecimal(12.0),null,false);
+        Font font=new Font(false,false,false,CellUtils.getDefaultFontName(),BigDecimal.valueOf(12.0),null,false);
         return font;
     }
     Fill getDefaultFill(){

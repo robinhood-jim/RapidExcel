@@ -20,11 +20,9 @@ public class RowSpliterator extends BaseSpliterator<Row> {
 
 
     @Override
-    void initHeader() {
+    void initCells() {
         cells=new ArrayList<>(prop.getColumnList().size());
-        for(int i=0;i<prop.getColumnPropList().size();i++){
-            cells.add(null);
-        }
+        prop.getColumnPropList().forEach(f->cells.add(null));
     }
 
     @Override

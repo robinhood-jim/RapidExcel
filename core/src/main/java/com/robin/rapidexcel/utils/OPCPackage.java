@@ -176,7 +176,7 @@ public class OPCPackage implements Closeable {
                 }else if(EXTEND_PROPERTY_CONTENTTYPE.equals(contentType)){
                     appPath=reader.getAttributeRequired("PartName");
                 }
-                if(workBookPath!=null && shardingStringsPath!=null && stylePath!=null){
+                if(workBookPath!=null && shardingStringsPath!=null && stylePath!=null && appPath!=null){
                     break;
                 }
             }

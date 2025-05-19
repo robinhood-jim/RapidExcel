@@ -1,13 +1,12 @@
 package com.robin.rapidexcel.utils;
 
-import com.robin.rapidexcel.writer.XMLWriter;
-
-import java.io.IOException;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CellUtils {
     private static final Pattern paramPattern=Pattern.compile("\\w+(\\{P([\\+|-]?[\\d+])?\\})");
+    static String defaultFontName= Locale.CHINA.equals(Locale.getDefault()) || Locale.SIMPLIFIED_CHINESE.equals(Locale.getDefault()) ? "宋体" : "Calibri";
     public static  String colToString(int col){
         StringBuilder sb = new StringBuilder();
         while (col >= 0) {
@@ -35,5 +34,8 @@ public class CellUtils {
         }
         matcher.appendTail(buffer);
         return buffer.toString();
+    }
+    public static String getDefaultFontName(){
+        return defaultFontName;
     }
 }

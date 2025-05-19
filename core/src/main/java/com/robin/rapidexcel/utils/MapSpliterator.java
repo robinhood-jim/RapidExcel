@@ -22,11 +22,9 @@ public class MapSpliterator extends BaseSpliterator<Map<String,Object>> {
     }
 
     @Override
-    void initHeader() {
+    void initCells() {
         cells=new ArrayList<>(prop.getColumnList().size());
-        for(int i=0;i<prop.getColumnPropList().size();i++){
-            cells.add(null);
-        }
+        prop.getColumnPropList().forEach(f->cells.add(null));
     }
 
     @Override

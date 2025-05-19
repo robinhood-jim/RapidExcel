@@ -30,7 +30,7 @@ import java.util.zip.ZipOutputStream;
 public class WorkBook implements Closeable {
     int activeTab = 0;
     boolean finished = false;
-    String applicationName="com.robin FastExcel";
+    String applicationName="RapidExcel";
     String applicationVersion;
     OPCPackage opcPackage;
     List<WorkSheet> sheets=new ArrayList<>();
